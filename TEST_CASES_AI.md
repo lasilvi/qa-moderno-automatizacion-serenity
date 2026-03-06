@@ -4,190 +4,215 @@
 
 | ID | Caso de Prueba Generado por Gema | Ajuste del Probador | Motivo del Ajuste |
 |----|----------------------------------|----------------------|-------------------|
-| CP-01 | H1 - Validación de número de mesa (Límite inferior). Técnica: Análisis de valores límite. Dado cliente en TableSelectPage.tsx. Cuando ingresa mesa 0. Entonces muestra error y bloquea acceso al menú. | Sin ajuste | El caso está correctamente definido y es verificable. |
-| CP-02 | H1 - Selección de mesa válida y persistencia de sesión. Dado mesa 5 seleccionada. Cuando cierra navegador y vuelve. Entonces recupera mesa desde useApp(). | Se especifica que la mesa debe estar previamente persistida en LocalStorage para ser recuperada por el contexto global. | Se elimina ambigüedad sobre el mecanismo real de persistencia. |
-| CP-03 | H1 - Filtrado de productos inactivos (isActive=false). Cuando carga MenuPage.tsx. Entonces solo muestra productos activos. | Sin ajuste | El criterio funcional es claro y medible. |
-| CP-04 | H1 - Persistencia del carrito en LocalStorage. Cuando refresca o cierra pestaña. Entonces mantiene producto y cantidad. | Sin ajuste | El comportamiento esperado está correctamente delimitado. |
-| CP-05 | H1 - Intento de compra con producto desactivado. Backend responde 400 Bad Request y frontend notifica indisponibilidad. | No aplica (Caso excluido) | Caso excluido del alcance funcional definido para la entrega actual. |
-| CP-06 | H1 - Confirmación exitosa y publicación de evento order.placed en RabbitMQ. | Se agrega validación de respuesta HTTP 201 Created tras la persistencia exitosa. | Permite validar formalmente el éxito de la operación en backend. |
-| CP-07 | H2 - Acceso denegado al tablero sin X-Kitchen-Token. Retorna 401 Unauthorized. | Sin ajuste | Caso de seguridad correctamente definido. |
-| CP-08 | H2 - Acceso exitoso con token válido cocina123 y visualización del tablero Kanban. | Sin ajuste | Flujo de autenticación claro y verificable. |
-| CP-09 | H2 - Actualización automática del tablero (≤ 3 segundos). | Se especifica que el tiempo se mide desde la persistencia del pedido en base de datos. | Se evita ambigüedad en la medición del tiempo para pruebas de rendimiento. |
-| CP-10 | H2 - Transición válida de estado PENDING → IN_PREPARATION. Actualiza estado y campo updatedAt en base de datos. | Sin ajuste | Flujo coherente con el modelo de estados definido. |
-| CP-11 | H2 - Transición inválida READY → PENDING. Lanza InvalidStatusTransitionException y retorna 400 Bad Request. | Sin ajuste | Regla de negocio RN-001 correctamente validada. |
-| CP-12 | H2 - Eliminación masiva (Soft Delete). Marca pedidos como deleted=true y los oculta de la vista manteniéndolos en BD. | No aplica (Caso excluido) | Funcionalidad no implementada ni incluida dentro del alcance del sprint actual. |
-| CP-13 | H3 - Consulta pública del estado del pedido vía UUID sin autenticación. | Sin ajuste | Caso funcional claro y correctamente delimitado. |
-| CP-14 | H3 - Representación visual por colores según estado (Amarillo=PENDING, Azul=IN_PREPARATION, Verde=READY). | Se especifica que el cambio de estado es detectado mediante polling del frontend. | Corrección técnica para reflejar el flujo real del sistema. |
-| CP-15 | H3 - Detención automática del polling cuando el estado cambia a READY. | No aplica (Caso excluido) | Optimización de eficiencia no contemplada dentro del alcance funcional validado. |
-| CP-16 | H3 - Consulta de pedido inexistente o eliminado. Retorna 404 Not Found. | Sin ajuste | Manejo de error correctamente especificado y verificable. |
+| CP-01 | Validación de número de mesa (valor límite inferior: 0). | Sin ajuste | Caso válido para validar restricción de dominio (mesa ≥ 1). |
+| CP-02 | Acceso exitoso al menú mediante selección de mesa válida (mesa = 1). | Sin ajuste | Flujo funcional básico correcto. |
+| CP-03 | Restricción de cambio de mesa en la misma sesión. | Eliminado | No existe funcionalidad implementada que restrinja el cambio de mesa en sesión. |
+| CP-04 | Persistencia del carrito al cerrar o refrescar el navegador. | Sin ajuste | Comportamiento esperado mediante LocalStorage/CartContext. |
+| CP-05 | Filtrado de productos inactivos en el menú. | Eliminado | La funcionalidad de gestión de productos activos/inactivos no está implementada actualmente en el sistema. |
+| CP-06 | Desactivación de producto durante la conformación del pedido. | Eliminado | Funcionalidad dependiente de administración de productos no implementada en el alcance actual. |
+| CP-07 | Confirmación exitosa del pedido y generación de UUID. | Se agrega validación HTTP 201 Created | Permite validar formalmente la respuesta correcta del backend. |
+| CP-08 | Visualización del tablero de cocina ordenado por prioridad temporal. | Sin ajuste | Flujo esperado de visualización de pedidos en cocina. |
+| CP-09 | Transición de estado PENDING → IN_PREPARATION. | Sin ajuste | Flujo válido dentro de la máquina de estados del pedido. |
+| CP-10 | Finalización del pedido y publicación de evento en RabbitMQ. | Eliminado | Integración con mensajería (RabbitMQ) no está implementada actualmente en el sistema. |
+| CP-11 | Intento de transición inválida READY → IN_PREPARATION. | Sin ajuste | Regla de negocio válida que debe generar error 400. |
+| CP-12 | Visualización del estado inicial del pedido (Pendiente). | Sin ajuste | Flujo funcional del cliente correctamente definido. |
+| CP-13 | Actualización automática del estado mediante polling cada 5 segundos. | Ajustado: Polling ≤ 3 segundos | Se alinea con el comportamiento real esperado del sistema. |
+| CP-14 | Visualización del estado final READY con indicador visual. | Sin ajuste | Caso funcional válido para el flujo final del pedido. |
+| CP-15 | Consulta de pedido inexistente mediante UUID. | Sin ajuste | Manejo de error esperado (404 Not Found). |
 
 ---
 
-## H1: SELECCIÓN DE MESA Y CREACIÓN DE PEDIDO (CLIENTE)
+# H1a: SELECCIÓN DE MESA (CLIENTE)
 
-### Técnicas Aplicadas
-- Análisis de valores límite (mesa / cantidad)
-- Partición de equivalencia (isActive)
-- Pruebas de estado persistente
-- Pruebas negativas (manejo de excepciones)
-- Validación de eventos asíncronos
+## Técnicas Aplicadas
 
-### Caso de Prueba 1: Validación de número de mesa (Límite inferior)
+- Análisis de valores límite
+- Partición de equivalencia
+- Pruebas negativas
+
+---
+
+### Caso de Prueba 1: Validación de número de mesa (límite inferior)
+
 **Técnica:** Análisis de valores límite
 
-**Dado que** el cliente se encuentra en la página de selección de mesa `TableSelectPage.tsx`  
+**Dado que** el cliente se encuentra en la página `TableSelectPage.tsx`  
 **Cuando** ingresa el número de mesa **0**  
-**Entonces** el sistema debe mostrar un error de validación y no permitir avanzar al menú
+**Entonces** el sistema debe mostrar un error de validación y no permitir avanzar al menú.
 
-**Resultado esperado:**
+**Resultado esperado**
+
 - Se muestra mensaje de error
 - No hay navegación a `/client/menu`
 
-### Caso de Prueba 2: Selección de mesa válida y persistencia de sesión
-**Técnica:** Prueba de estado persistente
+---
 
-**Dado que** el cliente ingresa el número de mesa **5**  
-**Cuando** el cliente cierra el navegador y vuelve a ingresar a la aplicación  
-**Entonces** el sistema debe recuperar el número de mesa 5 desde el contexto global `useApp()`
+### Caso de Prueba 2: Acceso exitoso con mesa válida
 
-**Resultado esperado:**
-- La aplicación redirige al menú
-- El número de mesa permanece almacenado
+**Técnica:** Partición de equivalencia
 
-### Caso de Prueba 3: Filtrado de productos inactivos en el menú
-**Técnica:** Partición de equivalencia (isActive = true / false)
+**Dado que** el cliente se encuentra en la pantalla de selección de mesa  
+**Cuando** ingresa el número de mesa **1**  
+**Entonces** el sistema debe redirigir al cliente a `MenuPage.tsx`.
 
-**Dado que** existen productos en la base de datos con `isActive = false`  
-**Cuando** el cliente carga la página `MenuPage.tsx`  
-**Entonces** el sistema solo debe mostrar los productos donde `isActive = true`
+**Resultado esperado**
 
-**Resultado esperado:**
-- Productos inactivos no visibles en la interfaz
-- El endpoint `GET /menu` retorna únicamente productos activos
+- Redirección correcta al menú
+- Visualización de productos disponibles
 
-### Caso de Prueba 4: Persistencia del carrito en LocalStorage
+---
+
+# H1b: REALIZACIÓN DE PEDIDO (CLIENTE)
+
+## Técnicas Aplicadas
+
+- Pruebas de persistencia
+- Validación funcional
+- Pruebas negativas
+- Integración API
+
+---
+
+### Caso de Prueba 3: Persistencia del carrito
+
 **Técnica:** Prueba de persistencia
 
-**Dado que** el cliente agrega **"Empanadas criollas"** al carrito  
+**Dado que** el cliente agrega productos al carrito  
 **Cuando** refresca la página o cierra la pestaña del navegador  
-**Entonces** al volver a entrar, el carrito debe mantener el producto y la cantidad seleccionada
+**Entonces** el sistema debe recuperar los productos almacenados.
 
-**Resultado esperado:**
-- Datos recuperados desde `localStorage`
-- Totales recalculados correctamente
+**Resultado esperado**
 
-### Caso de Prueba 5: Intento de compra con producto desactivado (Excepción)
-**Técnica:** Prueba negativa / Regla **RN-002**
+- Recuperación desde `localStorage`
+- Cantidades y totales correctos
 
-**Dado que** el cliente tiene un producto en el carrito que fue desactivado recientemente  
-**Cuando** hace clic en **"Confirmar Pedido"**  
-**Entonces** el backend debe responder con `400 Bad Request` y el frontend debe notificar que el producto ya no está disponible
+---
 
-**Resultado esperado:**
-- No se crea la orden
-- Se muestra mensaje de error claro
+### Caso de Prueba 4: Confirmación exitosa del pedido
 
-### Caso de Prueba 6: Confirmación exitosa y publicación de evento
-**Técnica:** Validación funcional + Evento asíncrono
+**Técnica:** Validación funcional
 
-**Dado que** el cliente tiene un carrito válido y una mesa asignada  
-**Cuando** presiona el botón **"Confirmar Pedido"**  
+**Dado que** el cliente tiene un carrito válido  
+**Cuando** presiona el botón **Confirmar Pedido**  
 **Entonces** el sistema debe:
+
 - Generar un **UUID único**
 - Persistir la orden con estado **PENDING**
-- Publicar el evento `order.placed` en **RabbitMQ**
+- Retornar **HTTP 201 Created**
+- Redirigir a `ConfirmationPage.tsx`.
 
-**Resultado esperado:**
+**Resultado esperado**
+
 - Redirección a `/client/confirm/{orderId}`
-- Registro visible en base de datos
-- Evento publicado correctamente
+- UUID visible en la interfaz
+- Registro persistido en base de datos
 
 ---
 
-## H2: GESTIÓN DE PEDIDOS (COCINA)
+# H2: GESTIÓN DE PEDIDOS (COCINA)
 
-### Técnicas Aplicadas
-- Tabla de decisión (Seguridad)
-- Transición de estados (Máquina de estados)
-- Pruebas de carga ligera (Polling)
-- Validación de reglas de negocio (**RN-001**)
-- Soft delete
+## Técnicas Aplicadas
 
-### Caso de Prueba 7: Acceso denegado sin token
-**Técnica:** Tabla de decisión (Header presente/ausente)
+- Transición de estados
+- Validación de reglas de negocio
+- Pruebas de seguridad
 
-**Dado que** un usuario intenta acceder a `GET /orders` sin el header `X-Kitchen-Token`  
-**Cuando** la solicitud es interceptada por `KitchenSecurityInterceptor`  
-**Entonces** el sistema debe retornar `401 Unauthorized`
+---
 
-### Caso de Prueba 8: Acceso exitoso con token válido
-**Dado que** el personal configura el token **cocina123**  
-**Cuando** accede a `/kitchen/board` enviando el header correcto  
-**Entonces** el sistema debe permitir visualizar los pedidos en las columnas del **Kanban**
+### Caso de Prueba 5: Visualización del tablero de cocina
 
-### Caso de Prueba 9: Validación de actualización automática (Polling)
-**Técnica:** Prueba de eficiencia
+**Técnica:** Prueba funcional
 
-**Dado que** el personal visualiza el tablero Kanban  
-**Cuando** entra un nuevo pedido  
-**Entonces** el tablero debe actualizarse automáticamente en un tiempo **no mayor a 3 segundos** sin necesidad de recargar la página
+**Dado que** el personal de cocina accede al tablero  
+**Cuando** existen pedidos en estado **PENDING**  
+**Entonces** el sistema debe mostrarlos en el tablero ordenados por fecha de creación.
 
-### Caso de Prueba 10: Transición de estado válida
+---
+
+### Caso de Prueba 6: Transición válida de estado
+
 **Técnica:** Máquina de estados
 
-**Dado que** un pedido está en **PENDING**  
-**Cuando** el cocinero presiona **"Iniciar"**  
-**Entonces** el estado cambia a **IN_PREPARATION** y el campo `updatedAt` se actualiza en la base de datos
+**Dado que** un pedido está en estado **PENDING**  
+**Cuando** el cocinero presiona **Iniciar**  
+**Entonces** el sistema debe cambiar el estado a **IN_PREPARATION**.
 
-### Caso de Prueba 11: Transición inválida (RN-001)
-**Dado que** un pedido está en **READY**  
-**Cuando** se intenta cambiar vía API a **PENDING**  
-**Entonces** el sistema debe lanzar `InvalidStatusTransitionException` y retornar `400 Bad Request`
+**Resultado esperado**
 
-### Caso de Prueba 12: Eliminación masiva (Soft Delete)
-**Técnica:** Prueba de integridad lógica
-
-**Dado que** el personal ejecuta la acción de **"Borrado Masivo"**  
-**Cuando** confirma la operación  
-**Entonces** el sistema debe:
-- Marcar todos los pedidos como `deleted = true`
-- Hacerlos desaparecer de la vista
-- Mantenerlos en la base de datos para auditoría
+- Cambio de estado correcto
+- Actualización del campo `updatedAt`
 
 ---
 
-## H3: CONSULTA DE ESTADO (CLIENTE)
+### Caso de Prueba 7: Transición inválida
 
-### Técnicas Aplicadas
-- Partición de equivalencia (Estados visuales)
-- Pruebas de eficiencia (Detención de polling)
-- Pruebas negativas (404)
+**Técnica:** Prueba de robustez
 
-### Caso de Prueba 13: Acceso público al estado vía UUID
-**Dado que** el cliente tiene el **UUID** de su pedido generado exitosamente  
-**Cuando** ingresa a la URL `/client/status/{orderId}` sin autenticación  
-**Entonces** el sistema debe mostrar el resumen del pedido y su estado actual correctamente
+**Dado que** un pedido está en estado **READY**  
+**Cuando** se intenta cambiar a **IN_PREPARATION** mediante la API  
+**Entonces** el sistema debe retornar **400 Bad Request**.
 
-### Caso de Prueba 14: Representación visual de estados
-**Técnica:** Partición por estado
+---
 
-**Dado que** el cliente está consultando su pedido  
-**Cuando** el estado cambia en la base de datos  
-**Entonces** el frontend debe mostrar:
-- **PENDING** → Amarillo
-- **IN_PREPARATION** → Azul
-- **READY** → Verde
+# H3: CONSULTA DE ESTADO DEL PEDIDO (CLIENTE)
 
-### Caso de Prueba 15: Detención de Polling
-**Técnica:** Optimización de recursos
+## Técnicas Aplicadas
 
-**Dado que** el cliente está en la página de seguimiento  
-**Cuando** el estado cambia a **READY**  
-**Entonces** el proceso de polling de **5 segundos** debe detenerse automáticamente
+- Partición de equivalencia
+- Pruebas de tiempo
+- Pruebas negativas
 
-### Caso de Prueba 16: Consulta de pedido inexistente o eliminado
+---
+
+### Caso de Prueba 8: Visualización del estado inicial
+
+**Dado que** el cliente posee el UUID de su pedido  
+**Cuando** accede a `/client/status/{orderId}`  
+**Entonces** el sistema debe mostrar el estado **PENDING**.
+
+**Resultado esperado**
+
+- Badge amarillo
+- Detalles del pedido visibles
+
+---
+
+### Caso de Prueba 9: Actualización automática del estado
+
+**Técnica:** Pruebas de sincronización
+
+**Dado que** el cliente visualiza la pantalla de estado  
+**Cuando** la cocina cambia el estado del pedido  
+**Entonces** el sistema debe actualizar la vista mediante polling.
+
+**Resultado esperado**
+
+- Actualización automática ≤ 3 segundos
+- Cambio visual del estado
+
+---
+
+### Caso de Prueba 10: Pedido listo
+
+**Dado que** el pedido está en estado **READY**  
+**Cuando** el cliente consulta su estado  
+**Entonces** el sistema debe mostrar el estado final.
+
+**Resultado esperado**
+
+- Badge verde
+- Mensaje indicando que el pedido está listo
+
+---
+
+### Caso de Prueba 11: Pedido inexistente
+
 **Técnica:** Prueba negativa
 
-**Dado que** un pedido fue eliminado mediante soft delete o el UUID es inválido  
-**Cuando** el cliente intenta acceder a la página de estado  
-**Entonces** el sistema debe retornar `404 Not Found` y mostrar un mensaje indicando que el pedido no fue encontrado
+**Dado que** el cliente ingresa un UUID inválido  
+**Cuando** el frontend realiza `GET /orders/{id}`  
+**Entonces** el sistema debe retornar **404 Not Found**.
+
+**Resultado esperado**
+
+- Mensaje indicando que el pedido no fue encontrado
